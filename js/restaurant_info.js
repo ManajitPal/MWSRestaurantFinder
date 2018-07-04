@@ -2,40 +2,52 @@ let restaurant;
 var newMap;
 
 /**
+ * Registering service Worker.
+ */
+
+navigator.serviceWorker.register('./sw.js').then( reg => {
+  console.log('Service worker registered.');
+
+  if (!navigator.serviceWorker.controller) {
+    return;
+  }
+
+  if (reg.waiting) {
+    navigator.serviceWorker.controller.postMessage({action: 'skipWaiting'});
+  }
+
+  if (reg.installing) {
+    navigator.serviceWorker.addEventListener('statechange', () => {
+      if (navigator.serviceWorker.controller.state == 'installed') {
+        navigator.serviceWorker.controller.postMessage({action: 'skipWaiting'});
+      }
+    });
+  }
+
+  reg.addEventListener('updatefound', function() {
+    navigator.serviceWorker.addEventListener('statechange', () => {
+      if (navigator.serviceWorker.controller.state == 'installed') {
+        navigator.serviceWorker.controller.postMessage({action: 'skipWaiting'});
+      }
+    });
+  });
+
+}).catch(function() {
+  console.log('Service worker registration failed');
+});  
+
+var refreshing;
+navigator.serviceWorker.addEventListener('controllerchange', () => {
+  if (refreshing) return;
+  window.location.reload();
+  refreshing = true;
+})
+  
+/**
  * Initialize map as soon as the page is loaded.
  */
-document.addEventListener('DOMContentLoaded', (event) => {  
-  initMap();
-});
 
-/**
- * Initialize leaflet map
- */
-initMap = () => {
-  fetchRestaurantFromURL((error, restaurant) => {
-    if (error) { // Got an error!
-      console.error(error);
-    } else {      
-      self.newMap = L.map('map', {
-        center: [restaurant.latlng.lat, restaurant.latlng.lng],
-        zoom: 16,
-        scrollWheelZoom: false
-      });
-      L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
-        mapboxToken: '<your MAPBOX API KEY HERE>',
-        maxZoom: 18,
-        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
-          '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-          'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-        id: 'mapbox.streets'    
-      }).addTo(newMap);
-      fillBreadcrumb();
-      DBHelper.mapMarkerForRestaurant(self.restaurant, self.newMap);
-    }
-  });
-}  
- 
-/* window.initMap = () => {
+window.initMap = () => {
   fetchRestaurantFromURL((error, restaurant) => {
     if (error) { // Got an error!
       console.error(error);
@@ -45,11 +57,14 @@ initMap = () => {
         center: restaurant.latlng,
         scrollwheel: false
       });
+      google.maps.event.addDomListener(window, 'resize', function () {
+        map.setCenter(loc);
+      });
       fillBreadcrumb();
       DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
     }
   });
-} */
+}
 
 /**
  * Get current restaurant from page URL.
@@ -71,6 +86,7 @@ fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
+
       callback(null, restaurant)
     });
   }
@@ -87,7 +103,8 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   address.innerHTML = restaurant.address;
 
   const image = document.getElementById('restaurant-img');
-  image.className = 'restaurant-img'
+  image.className = 'restaurant-img';
+  image.alt = 'Image for ' + restaurant.name;
   image.src = DBHelper.imageUrlForRestaurant(restaurant);
 
   const cuisine = document.getElementById('restaurant-cuisine');
