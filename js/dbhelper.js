@@ -8,8 +8,19 @@ class DBHelper {
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
-    const port = 8000 // Change this to your server port
-    return `http://localhost:${port}/data/restaurants.json`;
+    const port = 1337 // Change this to your server port
+    return `http://localhost:${port}/restaurants`;
+  }
+  static openOfflineDb() {
+    if(!navigator.serviceWorker){
+      return Promise.resolve();
+    }
+    return  idb.open('restaurant-finder', 1, (upgradeDb) => {
+      let store = upgradeDb.createObjectStore('restaurants', {
+        keyPath: 'id'
+      });
+      store.createIndex('by-id', 'id');
+    });  
   }
 
   /**
@@ -20,12 +31,30 @@ class DBHelper {
     xhr.open('GET', DBHelper.DATABASE_URL);
     xhr.onload = () => {
       if (xhr.status === 200) { // Got a success response from server!
-        const json = JSON.parse(xhr.responseText);
-        const restaurants = json.restaurants;
+        const restaurants = JSON.parse(xhr.responseText);
+        DBHelper.openOfflineDb().then((db) => {
+          if(!db) return;
+          let tx = db.transaction('restaurants', 'readwrite');
+          let store = tx.objectStore('restaurants');
+          restaurants.forEach((restaurant) => {
+            store.put(restaurant);
+          });     
+          return restaurants;
+        }).then(()=>{
+          console.log('restaurant added successfully');
+        });
         callback(null, restaurants);
       } else { // Oops!. Got an error from server.
-        const error = (`Request failed. Returned status of ${xhr.status}`);
-        callback(error, null);
+        DBHelper.openOfflineDb().then((db) => {
+          let tx = db.transaction('restaurants');
+          let store = tx.objectStore('restaurants');
+          return store.getAll();
+        }).then((restaurants) => {
+          callback(null, restaurants);
+        }).catch( () => {
+          const error = (`Request failed. Returned status of ${xhr.status}`);
+          callback(error, null);
+        });
       }
     };
     xhr.send();
@@ -161,7 +190,7 @@ static mapMarkerForRestaurant(restaurant, map) {
       position: restaurant.latlng,
       url: DBHelper.urlForRestaurant(restaurant),
       map: map,
-      icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+      icon: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
       title: restaurant.name,
       animation: google.maps.Animation.DROP}
     );

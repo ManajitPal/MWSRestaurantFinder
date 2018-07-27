@@ -1,7 +1,7 @@
 /**
  * Service Worker file.
  */
-let staticCacheName = 'restaurant-cache-v1';
+let staticCacheName = 'restaurant-cache-v3';
 
 self.addEventListener('install', event => {
     event.waitUntil(
@@ -13,7 +13,6 @@ self.addEventListener('install', event => {
                 'js/main.js',
                 'js/restaurant_info.js',
                 'img/',
-                'data/restaurants.json',
             ]);
         })
     );

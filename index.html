@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#3367fe"/>
+    <link rel="manifest" href="manifest.json">
     <!-- Normalize.css for better cross-browser consistency -->
     <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
     <!-- Main CSS file -->
@@ -27,7 +29,7 @@
     <main id="maincontent">
       <!-- Beginning map -->
       <aside id="map-container">
-        <div id="map" aria-label="map" aria-role="application"></div>
+        <div id="map" aria-label="map" role="application"></div>
       </aside>
       <!-- End map -->
       <!-- Beginning restaurant listings -->
@@ -57,6 +59,8 @@
     </footer>
     <!-- End Footer -->
     <!-- Beginning scripts -->
+    <!-- IDB Library -->
+    <script async defer charset="utf-8" src="lib/idb.js"></script>
     <!-- Database helpers -->
     <script charset="utf-8" src="js/dbhelper.js"></script>
     <!-- Main javascript file -->
